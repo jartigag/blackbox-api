@@ -14,7 +14,16 @@ import secrets
 masto_account = Mastodon( access_token=secrets.masto_access_token, api_base_url='https://botsin.space')
 
 def post(content,mastodon,verbose):
-	"""explain this"""
+	"""post some content on any platform
+
+        args:
+            content (str): what to post
+            mastodon (bool): if True, post it on Mastodon
+            verbose (bool): if True, print post info
+
+        returns:
+            the post object
+        """
 	post=''
 	if mastodon:
 		try:
