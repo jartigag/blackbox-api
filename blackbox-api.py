@@ -9,21 +9,24 @@ __version__ = "0.1"
 
 import argparse
 from mastodon import Mastodon
+from telegram import Bot
 import secrets
 
 masto_account = Mastodon( access_token=secrets.masto_access_token, api_base_url='https://botsin.space')
+tele_bot = Bot(token=secrets.telegram_token)
+tele_bot.chat_id=secrets.telegram_chat_id
 
-def post(content,mastodon,verbose):
+def post(content,mastodon,telegram,verbose):
 	"""post some content on any platform
 
-        args:
-            content (str): what to post
-            mastodon (bool): if True, post it on Mastodon
-            verbose (bool): if True, print post info
+		args:
+			content (str): what to post
+			mastodon (bool): if True, post it on Mastodon
+			verbose (bool): if True, print post info
 
-        returns:
-            the post object
-        """
+		returns:
+			the post object
+		"""
 	post=''
 	if mastodon:
 		try:
@@ -32,6 +35,11 @@ def post(content,mastodon,verbose):
 				(post.created_at.strftime('%Y-%m-%d %H:%M:%S'),post.content,post.url))
 		except Exception as e:
 			if verbose: print("\n[\033[91m!\033[0m] error: %s" % e)
+	if telegram:
+			try:
+				tele_bot.send_message(chat_id=tele_bot.chat_id, text=content)
+			except Exception as e: 
+				if verbose: print("\n[\033[91m!\033[0m] error: %s" % e)
 	return post
 
 if __name__ == '__main__':
@@ -45,6 +53,8 @@ if __name__ == '__main__':
 		help="action's text/content")
 	parser.add_argument('-m','--mastodon',action='store_true',
 		help='where: mastodon')
+	parser.add_argument('-t','--telegram',action='store_true',
+		help='where: telegram')
 	parser.add_argument('-v','--verbose',action='store_true',
 		help='to print or not to print')
 	args = parser.parse_args()
