@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # let's detach bots from platforms
 #
-# usage: python3 blackbox-api.py post whatToPost --mastodon
+# usage: python3 blackbox_api.py post whatToPost --mastodon
 
 __author__ = "@jartigag"
 __version__ = "0.1"
