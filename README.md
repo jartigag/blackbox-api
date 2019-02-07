@@ -7,4 +7,3 @@ just a library i'm working on to easily interact (post, follow, etc.) with [twit
 i'm using some wrappers in order to develop this faster:
 - [tweepy](https://github.com/tweepy/tweepy)
 - [mastodon.py](https://github.com/halcy/Mastodon.py)
-- [python-telegram-bot](https://github.com/python-telegram-bot/python-telegram-bot)
