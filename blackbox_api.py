@@ -25,7 +25,7 @@ try:
 except Exception as e:
     pass
 
-def post(content,twitter=False,mastodon=False,telegram=False,reply_ops=[],verbose=False):
+def post(content,twitter=False,mastodon=False,telegram=False,reply_options=[],verbose=False):
     """post some content on any platform
 
         args:
@@ -59,8 +59,10 @@ def post(content,twitter=False,mastodon=False,telegram=False,reply_ops=[],verbos
             post = False
             if verbose: print("\n[\033[91m!\033[0m] mastodon error: %s" % e)
     if telegram:
-        if reply_ops:
-            reply_markup = '&reply_markup={"keyboard":[{}]}'.format( '[%s]' % ', '.join(map(str, reply_ops)) )
+        if reply_options:
+            reply_markup = '&reply_markup={"keyboard":['+','.join(map('["{0}"]'.format, reply_options))+']}'
+        else:
+            reply_markup = ''
         try:
             urllib.request.urlopen( "https://api.telegram.org/bot{}/sendMessage?chat_id={}&text={}{}".format(\
                     secrets.telegram_token, secrets.telegram_chat_id, content, reply_markup) )
@@ -86,9 +88,11 @@ if __name__ == '__main__':
         help='where: telegram')
     parser.add_argument('-tw','--twitter',action='store_true',
         help='where: twitter')
+    parser.add_argument('-r','--reply_options',nargs='+',
+            help="list of replies to be chosen")
     parser.add_argument('-v','--verbose',action='store_true',
         help='to print or not to print')
     args = parser.parse_args()
 
     if args.action=='post':
-        post(args.content,args.twitter,args.mastodon,args.telegram,args.verbose)
+        post(args.content,args.twitter,args.mastodon,args.telegram,args.reply_options,args.verbose)
