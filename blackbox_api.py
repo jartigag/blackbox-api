@@ -38,7 +38,7 @@ def post(content,twitter=False,mastodon=False,telegram=False,reply_options=[],ve
         the post object as a JSON. if error, post=False
     """
     global secrets
-    post = True
+
     if twitter:
         try:
             post = twitter_api.update_status(content)
@@ -49,6 +49,7 @@ def post(content,twitter=False,mastodon=False,telegram=False,reply_options=[],ve
         except Exception as e:
             post = False
             if verbose: print("\n[\033[91m!\033[0m] twitter error: %s" % e)
+
     if mastodon:
         try:
             header = {'Authorization': 'Bearer {}'.format(secrets.masto_access_token)}
@@ -61,6 +62,7 @@ def post(content,twitter=False,mastodon=False,telegram=False,reply_options=[],ve
         except Exception as e:
             post = False
             if verbose: print("\n[\033[91m!\033[0m] mastodon error: %s" % e)
+
     if telegram:
         if reply_options:
             reply_markup = '&reply_markup={"keyboard":['+','.join(map('["{0}"]'.format, reply_options))+']}'
@@ -76,6 +78,7 @@ def post(content,twitter=False,mastodon=False,telegram=False,reply_options=[],ve
         except Exception as e:
             post = False
             if verbose: print("\n[\033[91m!\033[0m] telegram error: %s" % e)
+
     return post
 
 if __name__ == '__main__':
