@@ -4,24 +4,27 @@
 #
 # usage: python3 blackbox_api.py post whatToPost --mastodon
 
-#TODO: change "if verbose: print(...)" for logging.info(...)
+#WIP: remove tweepy dependency
 
 __author__ = "@jartigag"
 __version__ = "0.1"
 
 import argparse
 import json
-from tweepy import OAuthHandler, API
+#from tweepy import OAuthHandler, API
 import secrets
 from datetime import datetime
 import urllib.request
+import logging
+import time
+import random
 
-try:
-    auth = OAuthHandler(secrets.twitter_consumer_key, secrets.twitter_consumer_secret)
-    auth.set_access_token(secrets.twitter_access_token, secrets.twitter_access_token_secret)
-    twitter_api = API(auth)
-except Exception as e:
-    pass
+#try:
+#    auth = OAuthHandler(secrets.twitter_consumer_key, secrets.twitter_consumer_secret)
+#    auth.set_access_token(secrets.twitter_access_token, secrets.twitter_access_token_secret)
+#    twitter_api = API(auth)
+#except Exception as e:
+#    pass
 
 def post(content,twitter=False,mastodon=False,telegram=False,reply_options=[],verbose=False):
     """post some content on any platform
@@ -40,15 +43,32 @@ def post(content,twitter=False,mastodon=False,telegram=False,reply_options=[],ve
     global secrets
 
     if twitter:
-        try:
-            post = twitter_api.update_status(content)
-            tweet_url = '{}/{}/status/{}'.format(post.source_url,post.user.screen_name,post.id)
-            if verbose: print('%s - \033[1mtweeted "\033[0m%s\033[1m" (in \033[0m%s\033[1m)\033[0m' %
-                (post.created_at.strftime('%Y-%m-%d %H:%M:%S'),post.text,tweet_url))
-            post = json.loads(post)
-        except Exception as e:
-            post = False
-            if verbose: print("\n[\033[91m!\033[0m] twitter error: %s" % e)
+        #try:
+        header = {'Authorization': 'OAuth\
+                oauth_consumer_key="{}",\
+                oauth_nonce="{}",\
+                oauth_signature="{}",\
+                oauth_signature_method="HMAC-SHA1",\
+                oauth_timestamp="{}",\
+                oauth_token="{}",\
+                oauth_version="1.0"'.format(
+            secrets.twitter_consumer_key,
+            ''.join([str(random.SystemRandom().randint(0, 9)) for i in range(8)]),
+            'signature', time.time(), secrets.twitter_access_token)}
+        data = urllib.parse.urlencode({'status': content}).encode('utf8')
+        req = urllib.request.Request('https://api.twitter.com/1.1/statuses/update.json?status={}'.format(
+            content), headers=header)
+        resp = urllib.request.urlopen(req) #FIXME: "HTTP Error 401: Authorization Required" (oauth_signature isn't ready yet)
+        post = json.loads(resp.read().decode('utf8'))
+
+        #post = twitter_api.update_status(content)
+        #tweet_url = '{}/{}/status/{}'.format(post.source_url,post.user.screen_name,post.id)
+        #if verbose: log.info('%s - \033[1mtweeted "\033[0m%s\033[1m" (in \033[0m%s\033[1m)\033[0m' %
+        #    (post.created_at.strftime('%Y-%m-%d %H:%M:%S'),post.text,tweet_url))
+        post = json.loads(post)
+        # except Exception as e:
+        #     post = False
+        #     if verbose: log.error("\n[\033[91m!\033[0m] twitter error: %s" % e)
 
     if mastodon:
         try:
@@ -57,11 +77,11 @@ def post(content,twitter=False,mastodon=False,telegram=False,reply_options=[],ve
             req = urllib.request.Request('https://botsin.space/api/v1/statuses', data, header)
             resp = urllib.request.urlopen(req)
             post = json.loads(resp.read().decode('utf8'))
-            if verbose: print('%s - \033[1mtooted "\033[0m%s\033[1m" (in \033[0m%s\033[1m)\033[0m' %
+            if verbose: log.info('%s - \033[1mtooted "\033[0m%s\033[1m" (in \033[0m%s\033[1m)\033[0m' %
                 (post['created_at'],post['content'],post['uri']))
         except Exception as e:
             post = False
-            if verbose: print("\n[\033[91m!\033[0m] mastodon error: %s" % e)
+            if verbose: log.error("\n[\033[91m!\033[0m] mastodon error: %s" % e)
 
     if telegram:
         if reply_options:
@@ -69,16 +89,17 @@ def post(content,twitter=False,mastodon=False,telegram=False,reply_options=[],ve
         else:
             reply_markup = ''
         try:
-            req = "https://api.telegram.org/bot{}/sendMessage?chat_id={}&text={}{}".format(\
-                    secrets.telegram_token, secrets.telegram_chat_id, content, reply_markup)
+            req = "https://api.telegram.org/bot{}/sendMessage?chat_id={}&text={}{}".format(
+                secrets.telegram_token, secrets.telegram_chat_id, content, reply_markup)
             resp = urllib.request.urlopen(req)
             post = json.loads(resp.read().decode('utf8'))
-            if verbose: print('%s - \033[1msent by telegram "\033[0m%s\033[1m" (in \033[0m%s\033[1m)\033[0m' %
+            if verbose: log.info('%s - \033[1msent by telegram "\033[0m%s\033[1m" (in \033[0m%s\033[1m)\033[0m' %
                 (datetime.now().strftime('%Y-%m-%d %H:%M:%S'),content,secrets.telegram_chat_id))
         except Exception as e:
             post = False
-            if verbose: print("\n[\033[91m!\033[0m] telegram error: %s" % e)
-
+            if verbose: log.error("\n[\033[91m!\033[0m] telegram error: %s" % e)
+    print('debugging:')
+    print(post)
     return post
 
 if __name__ == '__main__':
@@ -100,7 +121,16 @@ if __name__ == '__main__':
             help="list of replies to be chosen")
     parser.add_argument('-v','--verbose',action='store_true',
         help='to print or not to print')
+    parser.add_argument('-d','--debug',action='store_true',
+                    help='print at debug level')
     args = parser.parse_args()
+
+    log = logging.getLogger(__name__)
+    if args.debug:
+        logLevel = logging.DEBUG
+    elif args.verbose:
+        logLevel = logging.INFO
+    logging.basicConfig(level=logLevel, format="[ %(asctime)s %(levelname)s ] " + "%(message)s")
 
     if args.action=='post':
         post(args.content,args.twitter,args.mastodon,args.telegram,args.reply_options,args.verbose)
