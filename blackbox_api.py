@@ -11,20 +11,12 @@ __version__ = "0.1"
 
 import argparse
 import json
-#from tweepy import OAuthHandler, API
 import secrets
 from datetime import datetime
-import urllib.request
+import urllib.request, urllib.parse
 import logging
 import time
 import random
-
-#try:
-#    auth = OAuthHandler(secrets.twitter_consumer_key, secrets.twitter_consumer_secret)
-#    auth.set_access_token(secrets.twitter_access_token, secrets.twitter_access_token_secret)
-#    twitter_api = API(auth)
-#except Exception as e:
-#    pass
 
 def post(content,twitter=False,mastodon=False,telegram=False,reply_options=[],verbose=False):
     """post some content on any platform
@@ -42,6 +34,10 @@ def post(content,twitter=False,mastodon=False,telegram=False,reply_options=[],ve
     """
     global secrets
 
+    def signature(request, consumer, token):
+        #TODO: https://tools.ietf.org/html/draft-hammer-oauth-10#section-3.4
+        pass
+
     if twitter:
         #try:
         header = {'Authorization': 'OAuth\
@@ -54,11 +50,13 @@ def post(content,twitter=False,mastodon=False,telegram=False,reply_options=[],ve
                 oauth_version="1.0"'.format(
             secrets.twitter_consumer_key,
             ''.join([str(random.SystemRandom().randint(0, 9)) for i in range(8)]),
-            'signature', time.time(), secrets.twitter_access_token)}
+            signature(request, consumer, token), #FIXME: "HTTP Error 401: Authorization Required" (oauth_signature isn't ready yet)
+            time.time(),
+            secrets.twitter_access_token)}
         data = urllib.parse.urlencode({'status': content}).encode('utf8')
         req = urllib.request.Request('https://api.twitter.com/1.1/statuses/update.json?status={}'.format(
             content), headers=header)
-        resp = urllib.request.urlopen(req) #FIXME: "HTTP Error 401: Authorization Required" (oauth_signature isn't ready yet)
+        resp = urllib.request.urlopen(req)
         post = json.loads(resp.read().decode('utf8'))
 
         #post = twitter_api.update_status(content)
